@@ -1,5 +1,6 @@
 package org.example.android.sunshine.app;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -47,19 +48,28 @@ public class ForecastFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
+        //Just some placeholder data for the listView.
         String[] data = {
             "Today - Sunny - 88/64",
             "Tomorrow - Foggy - 70/46",
-                "Monday - Rainy - 75/61",
-                "Tuesday - Sunny - 80/67",
-                "Wednesday - Foggy - 70/50",
-                "Thursday - Sunny - 85/75",
-                "Friday - Rainy - 75/55"
+            "Monday - Rainy - 75/61",
+            "Tuesday - Sunny - 80/67",
+            "Wednesday - Foggy - 70/50",
+            "Thursday - Sunny - 85/75",
+            "Friday - Rainy - 75/55"
         };
+        //This block of code creates the ArrayList for the above array then creates an adapter that sends the data to the ArrayList
         List<String> forecastArrayList = new ArrayList(Arrays.asList(data));
         forecastArrayAdapter = new ArrayAdapter<String>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast_textview, forecastArrayList);
         ListView listViewForecast = (ListView) rootView.findViewById(R.id.listview_forecast);
         listViewForecast.setAdapter(forecastArrayAdapter);
+        listViewForecast.setOnItemClickListener((adapterView, view, position, l) -> {
+                String forecast = forecastArrayAdapter.getItem(position);
+                Intent detailActivityIntent = new Intent(getActivity(), DetailActivity.class);
+                detailActivityIntent.putExtra(detailActivityIntent.EXTRA_TEXT, forecast);
+                startActivity(detailActivityIntent);
+
+        });
         return rootView;
     }
     @Override
@@ -193,6 +203,7 @@ public class ForecastFragment extends Fragment {
             int numDays = 7;
 
             try {
+                //Builds up the OpenWeatherMap URL to grab the weather. This is better than just using a URL constructor with the entire URL as a string
                 Uri.Builder builder = new Uri.Builder();
                 builder.scheme("http")
                         .authority("api.openweathermap.org")

@@ -10,11 +10,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ShareActionProvider;
 import android.widget.TextView;
 
 
 public class DetailActivity extends ActionBarActivity {
     private final String LOG_TAG = DetailActivity.class.getSimpleName();
+    ShareActionProvider mShareActionProvider;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +47,17 @@ public class DetailActivity extends ActionBarActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            return true;
+            Intent settingsIntent = new Intent(this, SettingsActivity.class);
+            startActivity(settingsIntent);
+        } else if (id == R.id.action_share) {
+            Intent shareIntent = new Intent();
+            Intent callerIntent = getIntent();
+            shareIntent.setAction(Intent.ACTION_SEND);
+            String weatherMessage = callerIntent.getStringExtra(callerIntent.EXTRA_TEXT);
+            shareIntent.putExtra(Intent.EXTRA_TEXT, weatherMessage + "#SunshineApp");
+            shareIntent.setType("text/plain");
+            shareIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+            startActivity(shareIntent);
         }
 
         return super.onOptionsItemSelected(item);

@@ -1,9 +1,11 @@
 package org.example.android.sunshine.app;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.text.format.Time;
 import android.util.Log;
@@ -28,8 +30,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -37,52 +37,58 @@ import java.util.List;
 public class ForecastFragment extends Fragment {
 
     ArrayAdapter<String> forecastArrayAdapter;
+    String userLocation;
+    SharedPreferences preferences;
 
     public ForecastFragment() {
     }
+
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
     }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-        //Just some placeholder data for the listView.
-        String[] data = {
-            "Today - Sunny - 88/64",
-            "Tomorrow - Foggy - 70/46",
-            "Monday - Rainy - 75/61",
-            "Tuesday - Sunny - 80/67",
-            "Wednesday - Foggy - 70/50",
-            "Thursday - Sunny - 85/75",
-            "Friday - Rainy - 75/55"
-        };
-        //This block of code creates the ArrayList for the above array then creates an adapter that sends the data to the ArrayList
-        List<String> forecastArrayList = new ArrayList(Arrays.asList(data));
-        forecastArrayAdapter = new ArrayAdapter<String>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast_textview, forecastArrayList);
+        forecastArrayAdapter = new ArrayAdapter<String>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast_textview, new ArrayList<String>());
         ListView listViewForecast = (ListView) rootView.findViewById(R.id.listview_forecast);
         listViewForecast.setAdapter(forecastArrayAdapter);
         listViewForecast.setOnItemClickListener((adapterView, view, position, l) -> {
-                String forecast = forecastArrayAdapter.getItem(position);
-                Intent detailActivityIntent = new Intent(getActivity(), DetailActivity.class);
-                detailActivityIntent.putExtra(detailActivityIntent.EXTRA_TEXT, forecast);
-                startActivity(detailActivityIntent);
+            String forecast = forecastArrayAdapter.getItem(position);
+            Intent detailActivityIntent = new Intent(getActivity(), DetailActivity.class);
+            detailActivityIntent.putExtra(detailActivityIntent.EXTRA_TEXT, forecast);
+            startActivity(detailActivityIntent);
 
         });
         return rootView;
     }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
+    }
+
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.forecastfragment, menu);
     }
+
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
-            new FetchWeatherTask().execute("81007,USA");
-            }
-        return super.onOptionsItemSelected(item);
+            updateWeather();
         }
+        return super.onOptionsItemSelected(item);
+    }
+    public void updateWeather() {
+        preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+        userLocation = preferences.getString(getString(R.string.pref_location_key), getString(R.string.pref_location_default));
+        new FetchWeatherTask().execute(userLocation);
+    }
+
     class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
 
         private final String LOG_TAG = FetchWeatherTask.class.getSimpleName();
@@ -100,7 +106,7 @@ public class ForecastFragment extends Fragment {
         /* The date/time conversion code is going to be moved outside the asynctask later,
              * so for convenience we're breaking it out into its own method now.
              */
-        private String getReadableDateString(long time){
+        private String getReadableDateString(long time) {
             // Because the API returns a unix timestamp (measured in seconds),
             // it must be converted to milliseconds in order to be converted to valid date.
             SimpleDateFormat shortenedDateFormat = new SimpleDateFormat("EEE MMM dd");
@@ -122,7 +128,7 @@ public class ForecastFragment extends Fragment {
         /**
          * Take the String representing the complete forecast in JSON Format and
          * pull out the data we need to construct the Strings needed for the wireframes.
-         *
+         * <p>
          * Fortunately parsing is easy:  constructor takes the JSON string and converts it
          * into an Object hierarchy for us.
          */
@@ -158,7 +164,7 @@ public class ForecastFragment extends Fragment {
             dayTime = new Time();
 
             String[] resultStrs = new String[numDays];
-            for(int i = 0; i < weatherArray.length(); i++) {
+            for (int i = 0; i < weatherArray.length(); i++) {
                 // For now, using the format "Day, description, hi/low"
                 String day;
                 String description;
@@ -172,7 +178,7 @@ public class ForecastFragment extends Fragment {
                 // "this saturday".
                 long dateTime;
                 // Cheating to convert this to UTC time, which is what we want anyhow
-                dateTime = dayTime.setJulianDay(julianStartDay+i);
+                dateTime = dayTime.setJulianDay(julianStartDay + i);
                 day = getReadableDateString(dateTime);
 
                 // description is in a child array called "weather", which is 1 element long.
@@ -195,6 +201,7 @@ public class ForecastFragment extends Fragment {
             return resultStrs;
 
         }
+
         protected String[] doInBackground(String... params) {
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
@@ -205,6 +212,8 @@ public class ForecastFragment extends Fragment {
             try {
                 //Builds up the OpenWeatherMap URL to grab the weather. This is better than just using a URL constructor with the entire URL as a string
                 Uri.Builder builder = new Uri.Builder();
+                preferences = PreferenceManager.getDefaultSharedPreferences(getActivity().getApplicationContext());
+                String userUnit = preferences.getString(getString(R.string.pref_unit_key), getString(R.string.pref_unit_default));
                 builder.scheme("http")
                         .authority("api.openweathermap.org")
                         .appendPath("data")
@@ -214,7 +223,7 @@ public class ForecastFragment extends Fragment {
                         .appendQueryParameter("q", params[0])
                         .appendQueryParameter("cnt", "7")
                         .appendQueryParameter("mode", "json")
-                        .appendQueryParameter("units", "metric");
+                        .appendQueryParameter("units", userUnit);
                 URL url = new URL(builder.toString());
                 Log.v(LOG_TAG, url.toString());
                 urlConnection = (HttpURLConnection) url.openConnection();
@@ -262,5 +271,5 @@ public class ForecastFragment extends Fragment {
         }
 
     }
-    }
+}
 

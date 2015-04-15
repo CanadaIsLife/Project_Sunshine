@@ -1,12 +1,19 @@
 package org.example.android.sunshine.app;
 
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 
 public class MainActivity extends ActionBarActivity {
+    private final String LOG_TAG = MainActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,11 +42,33 @@ public class MainActivity extends ActionBarActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+//        if (id == R.id.action_settings) {
+//            Intent settingsIntent = new Intent(this, SettingsActivity.class);
+//            startActivity(settingsIntent);
+//        }
+        switch(id) {
+            case R.id.action_settings:
+                Intent settingsIntent = new Intent(this, SettingsActivity.class);
+                startActivity(settingsIntent);
+                break;
+            case R.id.action_map:
+                openMap();
+                break;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+    private void openMap() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        String location = preferences.getString(getString(R.string.pref_location_key), getString(R.string.pref_location_default));
+        try {
+            Intent mapIntent = new Intent(Intent.ACTION_VIEW);
+            Uri geoLocation = Uri.parse("geo: 0, 0").buildUpon().appendQueryParameter("q", location).build();
+            mapIntent.setData(geoLocation);
+            startActivity(mapIntent);
+        } catch (ActivityNotFoundException e) {
+            Log.e(LOG_TAG, "Activity not found!");
+        }
     }
 
 }

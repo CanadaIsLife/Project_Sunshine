@@ -1,6 +1,5 @@
 package org.example.android.sunshine.app;
 
-import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -10,6 +9,7 @@ import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -24,6 +24,27 @@ public class MainActivity extends ActionBarActivity {
                     .add(R.id.container, new ForecastFragment())
                     .commit();
         }
+        Log.v(LOG_TAG, "onCreate");
+    }
+    public void onPause() {
+        super.onPause();
+        Log.v(LOG_TAG, "onPause");
+    }
+    public void onStart() {
+        super.onStart();
+        Log.v(LOG_TAG, "onStart");
+    }
+    public void onResume() {
+        super.onResume();
+        Log.v(LOG_TAG, "onResume");
+    }
+    public void onStop() {
+        super.onStop();
+        Log.v(LOG_TAG, "onStop");
+    }
+    public void onDestroy() {
+        super.onDestroy();
+        Log.v(LOG_TAG, "onDestroy");
     }
 
 
@@ -61,13 +82,15 @@ public class MainActivity extends ActionBarActivity {
     private void openMap() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         String location = preferences.getString(getString(R.string.pref_location_key), getString(R.string.pref_location_default));
-        try {
+
             Intent mapIntent = new Intent(Intent.ACTION_VIEW);
             Uri geoLocation = Uri.parse("geo: 0, 0").buildUpon().appendQueryParameter("q", location).build();
             mapIntent.setData(geoLocation);
+        if (mapIntent.resolveActivity(getPackageManager()) != null) {
             startActivity(mapIntent);
-        } catch (ActivityNotFoundException e) {
-            Log.e(LOG_TAG, "Activity not found!");
+        } else {
+            Log.d("openMap", "Couldn't find a map app!");
+            Toast.makeText(this, "No map app installed.", Toast.LENGTH_SHORT).show();
         }
     }
 
